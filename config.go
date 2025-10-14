@@ -1333,23 +1333,29 @@ func ValidateConfig(cfg Config, interceptor signal.Interceptor, fileParser,
 		return nil, mkErr(str)
 	}
 
+	// Determine if we're using Bitcoin or DigiByte
+	usingBitcoin := cfg.Bitcoin.MainNet || cfg.Bitcoin.TestNet3 || cfg.Bitcoin.TestNet4 ||
+		cfg.Bitcoin.RegTest || cfg.Bitcoin.SimNet || cfg.Bitcoin.SigNet
+	usingDigiByte := cfg.DigiByte.MainNet || cfg.DigiByte.TestNet3 || cfg.DigiByte.RegTest
+
 	// Validate the appropriate chain configuration
-	if cfg.Bitcoin.MainNet || cfg.Bitcoin.TestNet3 || cfg.Bitcoin.TestNet4 ||
-		cfg.Bitcoin.RegTest || cfg.Bitcoin.SimNet || cfg.Bitcoin.SigNet {
+	if usingBitcoin {
 		err = cfg.Bitcoin.Validate(minTimeLockDelta, funding.MinBtcRemoteDelay)
 		if err != nil {
 			return nil, mkErr("error validating bitcoin params: %v", err)
 		}
 	}
 
-	if cfg.DigiByte.MainNet || cfg.DigiByte.TestNet3 || cfg.DigiByte.RegTest {
+	if usingDigiByte {
 		err = cfg.DigiByte.Validate(minTimeLockDelta, funding.MinBtcRemoteDelay)
 		if err != nil {
 			return nil, mkErr("error validating digibyte params: %v", err)
 		}
 	}
 
-	switch cfg.Bitcoin.Node {
+	// Configure backend for Bitcoin
+	if usingBitcoin {
+		switch cfg.Bitcoin.Node {
 	case btcdBackendName:
 		err := parseRPCParams(
 			cfg.Bitcoin, cfg.BtcdMode, cfg.ActiveNetParams,
@@ -1383,14 +1389,15 @@ func ValidateConfig(cfg Config, interceptor signal.Interceptor, fileParser,
 			"supported for bitcoin at this time"
 
 		return nil, mkErr(str)
+		}
+
+		cfg.Bitcoin.ChainDir = filepath.Join(
+			cfg.DataDir, defaultChainSubDirname, BitcoinChainName,
+		)
 	}
 
-	cfg.Bitcoin.ChainDir = filepath.Join(
-		cfg.DataDir, defaultChainSubDirname, BitcoinChainName,
-	)
-
-	// Configure DigiByte backend if DigiByte is selected
-	if cfg.DigiByte.MainNet || cfg.DigiByte.TestNet3 || cfg.DigiByte.RegTest {
+	// Configure backend for DigiByte
+	if usingDigiByte {
 		switch cfg.DigiByte.Node {
 		case bitcoindBackendName:
 			err := parseRPCParams(

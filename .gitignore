@@ -85,3 +85,7 @@ coverage.txt
 
 # All test data generated from rapid.
 */testdata
+
+# DigiByte build artifacts
+lnd-digibyte
+lncli-digibyte

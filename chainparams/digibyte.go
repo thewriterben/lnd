@@ -10,7 +10,6 @@ package chainparams
 
 import (
 	bitcoinCfg "github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
 )
 
@@ -94,17 +93,5 @@ var DigiByteRegTestParams = bitcoinCfg.Params{
 	HDCoinType: 1,
 }
 
-// Register DigiByte networks with btcd
-func init() {
-	// Register DigiByte mainnet
-	mustRegister := func(params *bitcoinCfg.Params) {
-		err := bitcoinCfg.Register(params)
-		if err != nil {
-			panic("failed to register DigiByte network: " + err.Error())
-		}
-	}
-
-	mustRegister(&DigiByteMainNetParams)
-	mustRegister(&DigiByteTestNetParams)
-	mustRegister(&DigiByteRegTestParams)
-}
+// Note: DigiByte network parameters are not registered with btcd's global
+// registry to avoid conflicts. They are used directly by LND's chain registry.
