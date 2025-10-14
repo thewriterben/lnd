@@ -136,6 +136,35 @@ const (
 	// static estimators.
 	DefaultBitcoinStaticMinRelayFeeRate = chainfee.FeePerKwFloor
 
+	// DefaultDigiByteMinHTLCInMSat is the default smallest value htlc for
+	// DigiByte channels.
+	DefaultDigiByteMinHTLCInMSat = lnwire.MilliSatoshi(1)
+
+	// DefaultDigiByteMinHTLCOutMSat is the default minimum htlc value for
+	// sending out htlcs on DigiByte channels.
+	DefaultDigiByteMinHTLCOutMSat = lnwire.MilliSatoshi(1000)
+
+	// DefaultDigiByteBaseFeeMSat is the default forwarding base fee for
+	// DigiByte.
+	DefaultDigiByteBaseFeeMSat = lnwire.MilliSatoshi(100)
+
+	// DefaultDigiByteFeeRate is the default forwarding fee rate for
+	// DigiByte. Lower than Bitcoin due to lower on-chain fees.
+	DefaultDigiByteFeeRate = lnwire.MilliSatoshi(1)
+
+	// DefaultDigiByteTimeLockDelta is the default forwarding time lock
+	// delta for DigiByte. Due to 15-second block times, we can use a
+	// smaller delta than Bitcoin.
+	DefaultDigiByteTimeLockDelta = 40
+
+	// DefaultDigiByteStaticFeePerKW is the fee rate of 1 sat/vbyte
+	// expressed in sat/kw for DigiByte's low-fee environment.
+	DefaultDigiByteStaticFeePerKW = chainfee.SatPerKWeight(250)
+
+	// DefaultDigiByteStaticMinRelayFeeRate is the min relay fee used for
+	// DigiByte static estimators.
+	DefaultDigiByteStaticMinRelayFeeRate = chainfee.FeePerKwFloor
+
 	// DefaultMinOutboundPeers is the min number of connected
 	// outbound peers the chain backend should have to maintain a
 	// healthy connection to the network.

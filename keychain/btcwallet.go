@@ -22,6 +22,10 @@ const (
 	// CoinTypeTestnet specifies the BIP44 coin type for all testnet key
 	// derivation.
 	CoinTypeTestnet = 1
+
+	// CoinTypeDigiByte specifies the BIP44 coin type for DigiByte key
+	// derivation as registered in SLIP-0044.
+	CoinTypeDigiByte = 20
 )
 
 var (

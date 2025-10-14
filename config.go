@@ -246,6 +246,9 @@ const (
 	// BitcoinChainName is a string that represents the Bitcoin blockchain.
 	BitcoinChainName = "bitcoin"
 
+	// DigiByteChainName is a string that represents the DigiByte blockchain.
+	DigiByteChainName = "digibyte"
+
 	bitcoindBackendName = "bitcoind"
 	btcdBackendName     = "btcd"
 	neutrinoBackendName = "neutrino"
@@ -376,6 +379,7 @@ type Config struct {
 	FeeURL string `long:"feeurl" description:"DEPRECATED: Use 'fee.url' option. Optional URL for external fee estimation. If no URL is specified, the method for fee estimation will depend on the chosen backend and network. Must be set for neutrino on mainnet." hidden:"true"`
 
 	Bitcoin      *lncfg.Chain    `group:"Bitcoin" namespace:"bitcoin"`
+	DigiByte     *lncfg.Chain    `group:"DigiByte" namespace:"digibyte"`
 	BtcdMode     *lncfg.Btcd     `group:"btcd" namespace:"btcd"`
 	BitcoindMode *lncfg.Bitcoind `group:"bitcoind" namespace:"bitcoind"`
 	NeutrinoMode *lncfg.Neutrino `group:"neutrino" namespace:"neutrino"`
@@ -594,6 +598,15 @@ func DefaultConfig() Config {
 			TimeLockDelta: chainreg.DefaultBitcoinTimeLockDelta,
 			MaxLocalDelay: defaultMaxLocalCSVDelay,
 			Node:          btcdBackendName,
+		},
+		DigiByte: &lncfg.Chain{
+			MinHTLCIn:     chainreg.DefaultDigiByteMinHTLCInMSat,
+			MinHTLCOut:    chainreg.DefaultDigiByteMinHTLCOutMSat,
+			BaseFee:       chainreg.DefaultDigiByteBaseFeeMSat,
+			FeeRate:       chainreg.DefaultDigiByteFeeRate,
+			TimeLockDelta: chainreg.DefaultDigiByteTimeLockDelta,
+			MaxLocalDelay: defaultMaxLocalCSVDelay,
+			Node:          bitcoindBackendName,
 		},
 		BtcdMode: &lncfg.Btcd{
 			Dir:     defaultBtcdDir,
@@ -1285,6 +1298,21 @@ func ValidateConfig(cfg Config, interceptor signal.Interceptor, fileParser,
 		)
 		cfg.ActiveNetParams.Params = &chainParams
 	}
+
+	// DigiByte network selection
+	if cfg.DigiByte.MainNet {
+		numNets++
+		cfg.ActiveNetParams = chainreg.DigiByteMainNetParams
+	}
+	if cfg.DigiByte.TestNet3 {
+		numNets++
+		cfg.ActiveNetParams = chainreg.DigiByteTestNetParams
+	}
+	if cfg.DigiByte.RegTest {
+		numNets++
+		cfg.ActiveNetParams = chainreg.DigiByteRegTestParams
+	}
+
 	if numNets > 1 {
 		str := "The mainnet, testnet, testnet4, regtest, simnet and " +
 			"signet params can't be used together -- choose one " +
@@ -1298,18 +1326,36 @@ func ValidateConfig(cfg Config, interceptor signal.Interceptor, fileParser,
 	if numNets == 0 {
 		str := "either --bitcoin.mainnet, or --bitcoin.testnet, " +
 			"--bitcoin.testnet4, --bitcoin.simnet, " +
-			"--bitcoin.regtest or --bitcoin.signet must be " +
-			"specified"
+			"--bitcoin.regtest, --bitcoin.signet, " +
+			"--digibyte.mainnet, --digibyte.testnet, " +
+			"or --digibyte.regtest must be specified"
 
 		return nil, mkErr(str)
 	}
 
-	err = cfg.Bitcoin.Validate(minTimeLockDelta, funding.MinBtcRemoteDelay)
-	if err != nil {
-		return nil, mkErr("error validating bitcoin params: %v", err)
+	// Determine if we're using Bitcoin or DigiByte
+	usingBitcoin := cfg.Bitcoin.MainNet || cfg.Bitcoin.TestNet3 || cfg.Bitcoin.TestNet4 ||
+		cfg.Bitcoin.RegTest || cfg.Bitcoin.SimNet || cfg.Bitcoin.SigNet
+	usingDigiByte := cfg.DigiByte.MainNet || cfg.DigiByte.TestNet3 || cfg.DigiByte.RegTest
+
+	// Validate the appropriate chain configuration
+	if usingBitcoin {
+		err = cfg.Bitcoin.Validate(minTimeLockDelta, funding.MinBtcRemoteDelay)
+		if err != nil {
+			return nil, mkErr("error validating bitcoin params: %v", err)
+		}
 	}
 
-	switch cfg.Bitcoin.Node {
+	if usingDigiByte {
+		err = cfg.DigiByte.Validate(minTimeLockDelta, funding.MinBtcRemoteDelay)
+		if err != nil {
+			return nil, mkErr("error validating digibyte params: %v", err)
+		}
+	}
+
+	// Configure backend for Bitcoin
+	if usingBitcoin {
+		switch cfg.Bitcoin.Node {
 	case btcdBackendName:
 		err := parseRPCParams(
 			cfg.Bitcoin, cfg.BtcdMode, cfg.ActiveNetParams,
@@ -1343,11 +1389,39 @@ func ValidateConfig(cfg Config, interceptor signal.Interceptor, fileParser,
 			"supported for bitcoin at this time"
 
 		return nil, mkErr(str)
+		}
+
+		cfg.Bitcoin.ChainDir = filepath.Join(
+			cfg.DataDir, defaultChainSubDirname, BitcoinChainName,
+		)
 	}
 
-	cfg.Bitcoin.ChainDir = filepath.Join(
-		cfg.DataDir, defaultChainSubDirname, BitcoinChainName,
-	)
+	// Configure backend for DigiByte
+	if usingDigiByte {
+		switch cfg.DigiByte.Node {
+		case bitcoindBackendName:
+			err := parseRPCParams(
+				cfg.DigiByte, cfg.BitcoindMode, cfg.ActiveNetParams,
+			)
+			if err != nil {
+				return nil, mkErr("unable to load RPC "+
+					"credentials for digibyted: %v", err)
+			}
+		case "nochainbackend":
+			// Nothing to configure, we're running without any chain
+			// backend whatsoever (pure signing mode).
+
+		default:
+			str := "only bitcoind (digibyted) mode " +
+				"supported for digibyte at this time"
+
+			return nil, mkErr(str)
+		}
+
+		cfg.DigiByte.ChainDir = filepath.Join(
+			cfg.DataDir, defaultChainSubDirname, DigiByteChainName,
+		)
+	}
 
 	// Ensure that the user didn't attempt to specify negative values for
 	// any of the autopilot params.
