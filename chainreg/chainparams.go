@@ -3,6 +3,7 @@ package chainreg
 import (
 	bitcoinCfg "github.com/btcsuite/btcd/chaincfg"
 	bitcoinWire "github.com/btcsuite/btcd/wire"
+	"github.com/lightningnetwork/lnd/chainparams"
 	"github.com/lightningnetwork/lnd/keychain"
 )
 
@@ -58,6 +59,27 @@ var BitcoinSigNetParams = BitcoinNetParams{
 var BitcoinRegTestNetParams = BitcoinNetParams{
 	Params:   &bitcoinCfg.RegressionNetParams,
 	RPCPort:  "18334",
+	CoinType: keychain.CoinTypeTestnet,
+}
+
+// DigiByteMainNetParams contains parameters specific to the DigiByte mainnet.
+var DigiByteMainNetParams = BitcoinNetParams{
+	Params:   &chainparams.DigiByteMainNetParams,
+	RPCPort:  "14022",
+	CoinType: keychain.CoinTypeDigiByte,
+}
+
+// DigiByteTestNetParams contains parameters specific to the DigiByte testnet.
+var DigiByteTestNetParams = BitcoinNetParams{
+	Params:   &chainparams.DigiByteTestNetParams,
+	RPCPort:  "14023",
+	CoinType: keychain.CoinTypeTestnet,
+}
+
+// DigiByteRegTestParams contains parameters specific to the DigiByte regtest.
+var DigiByteRegTestParams = BitcoinNetParams{
+	Params:   &chainparams.DigiByteRegTestParams,
+	RPCPort:  "18443",
 	CoinType: keychain.CoinTypeTestnet,
 }
 
